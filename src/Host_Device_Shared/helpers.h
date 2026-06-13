@@ -15,6 +15,10 @@ using namespace std;
 
 SHARED_FILE_PREFIX
 
+// Avoid global namespace collision with std::lerp when compiling as C++20 with libstdc++
+// See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89855
+inline namespace {
+
 HOST_DEVICE inline float clamp(float val, float bottom, float top){return min(top, max(val, bottom));}
 HOST_DEVICE inline float square(float x){return x * x;}
 HOST_DEVICE inline float cube(float x){return x * x * x;}
@@ -72,6 +76,8 @@ HOST_DEVICE inline vec2 pixel_to_point_in_screen(const vec2& pixel, const vec2& 
 HOST_DEVICE inline vec2 point_to_pixel_in_screen(const vec2& point, const vec2& lx_ty, const vec2& rx_by, const vec2& wh) {
     const vec2 flip((point - lx_ty) * wh / (rx_by - lx_ty));
     return vec2(flip.x, wh.y-1-flip.y);
+}
+
 }
 
 SHARED_FILE_SUFFIX

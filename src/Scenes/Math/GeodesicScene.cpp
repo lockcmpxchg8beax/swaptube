@@ -4,10 +4,10 @@
 #include <string>
 
 ResolvedStateEquation r_eq = {
-    {RESOLVED_CONSTANT, .content = {.constant = 0.0}},
+    {.type = RESOLVED_CONSTANT, .content = {.constant = 0.0}},
 };
 ResolvedStateEquation i_eq = {
-    {RESOLVED_CONSTANT, .content = {.constant = 0.0}},
+    {.type = RESOLVED_CONSTANT, .content = {.constant = 0.0}},
 };
 extern "C" void launch_cuda_surface_raymarch(
     uint32_t* h_pixels, int w, int h,
