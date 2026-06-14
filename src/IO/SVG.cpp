@@ -80,6 +80,9 @@ shared_ptr<DevicePointer> svg_to_gpu_pix(const string& filename_with_or_without_
     // Set scale
     cairo_scale(cr, scaling_params.scale_factor, scaling_params.scale_factor);
 
+    // Viewport support requires librsvg 2.46
+    // See: https://gnome.pages.gitlab.gnome.org/librsvg/Rsvg-2.0/migrating.html#migrating-from-the-deprecated-api-that-does-not-use-viewports
+#if LIBRSVG_CHECK_VERSION(2, 46, 0)
     // Define viewport for rendering
     RsvgRectangle viewport = {
         .x = 0,
@@ -89,6 +92,9 @@ shared_ptr<DevicePointer> svg_to_gpu_pix(const string& filename_with_or_without_
     };
 
     if (viewport.width <= 0 || viewport.height <= 0) {
+#else
+    if (gwidth <= 0 || gheight <= 0) {
+#endif
         cairo_destroy(cr);
         cairo_surface_destroy(surface);
         g_object_unref(handle);
@@ -96,9 +102,14 @@ shared_ptr<DevicePointer> svg_to_gpu_pix(const string& filename_with_or_without_
     }
 
     // Render SVG
+#if LIBRSVG_CHECK_VERSION(2, 46, 0)
     if (!rsvg_handle_render_document(handle, cr, &viewport, &error)) {
         auto e = runtime_error("Failed to render SVG file " + filename + ": " + error->message);
         g_error_free(error);
+#else
+    if (!rsvg_handle_render_cairo(handle, cr)) {
+        auto e = runtime_error("Failed to render SVG file " + filename);
+#endif
         cairo_destroy(cr);
         cairo_surface_destroy(surface);
         g_object_unref(handle);
