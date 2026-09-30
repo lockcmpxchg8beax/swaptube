@@ -121,6 +121,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNG_INCLUDE_DIR}
 )
 
+add_subdirectory(glfw)
+
 target_link_libraries(
     ${PROJECT_NAME}
     ${GLIB_LIBRARIES}
@@ -133,6 +135,7 @@ target_link_libraries(
     ${PNG_LIBRARIES}
     ${GPU_LIBRARIES}
     ${X11_LIBRARIES}
+    glfw
 )
 
 message(STATUS "Link libraries configured for ${PROJECT_NAME}")
