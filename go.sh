@@ -76,9 +76,10 @@ CPU_ENCODE=0
 INVALID_FLAG=0
 COMPUTE_LANG=""
 DEBUGGER=0
+BACKTRACE=0
 MACROBLOCK_RANGE="all"
 # Parse flags
-while getopts "saxc:gem:" flag; do
+while getopts "saxc:gGem:" flag; do
     case "$flag" in
         s)
             SKIP_RENDER=1
@@ -103,6 +104,9 @@ while getopts "saxc:gem:" flag; do
                     ;;
             esac
             ;;
+        G)
+            BACKTRACE=1
+            ;&
         g)
             DEBUGGER=1
             ;;
@@ -204,10 +208,18 @@ echo "go.sh: Building project ${PROJECT_NAME} with output folder name ${OUTPUT_F
     # Smoketesting is mandatory and publishes the microblock counts used by render.
     MICROBLOCK_COUNTS_PATH="$(pwd)/io_out/microblock_counts.txt"
 
+    SMOKETEST_CMD=(./swaptube 320 180 $FRAMERATE $SAMPLERATE smoketest $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE all)
+    RENDER_CMD=(./swaptube $VIDEO_WIDTH $VIDEO_HEIGHT $FRAMERATE $SAMPLERATE render $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE "$MACROBLOCK_RANGE")
+    GDB_BACKTRACE=(-batch -ex "catch throw" -ex "run" -ex "bt" -ex "quit")
+
     if [ $DEBUGGER -eq 1 ]; then
-        gdb --args ./swaptube 320 180 $FRAMERATE $SAMPLERATE smoketest $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE all
+        if [ $BACKTRACE -eq 1 ]; then
+            gdb "${GDB_BACKTRACE[@]}" --args "${SMOKETEST_CMD[@]}"
+        else
+            gdb --args "${SMOKETEST_CMD[@]}"
+        fi
     else
-        ./swaptube 320 180 $FRAMERATE $SAMPLERATE smoketest $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE all
+        "${SMOKETEST_CMD[@]}"
     fi
     if [ $? -ne 0 ]; then
         echo "go.sh: Execution failed in smoketest."
@@ -219,9 +231,13 @@ echo "go.sh: Building project ${PROJECT_NAME} with output folder name ${OUTPUT_F
         # Clear all files from the smoketest, keeping the recorded microblock counts.
         find io_out/ -mindepth 1 -maxdepth 1 ! -name microblock_counts.txt -exec rm -rf {} +
         if [ $DEBUGGER -eq 1 ]; then
-            gdb --args ./swaptube $VIDEO_WIDTH $VIDEO_HEIGHT $FRAMERATE $SAMPLERATE render $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE "$MACROBLOCK_RANGE"
+            if [ $BACKTRACE -eq 1 ]; then
+                gdb "${GDB_BACKTRACE[@]}" --args "${RENDER_CMD[@]}"
+            else
+                gdb --args "${RENDER_CMD[@]}"
+            fi
         else
-            ./swaptube $VIDEO_WIDTH $VIDEO_HEIGHT $FRAMERATE $SAMPLERATE render $INCLUDE_AUDIO $AUDIO_SFX "$MICROBLOCK_COUNTS_PATH" $CPU_ENCODE "$MACROBLOCK_RANGE"
+            "${RENDER_CMD[@]}"
         fi
         if [ $? -ne 0 ]; then
             echo "go.sh: Execution failed in render."
